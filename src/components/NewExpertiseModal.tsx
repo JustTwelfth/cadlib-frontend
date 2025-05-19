@@ -117,12 +117,13 @@ const NewExpertiseModal: React.FC<NewExpertiseModalProps> = ({ open, onClose, ob
       fullWidth
       PaperProps={{
         sx: {
-          zIndex: 1250, // Ниже ParametersModal
+          zIndex: 1250,
+          bgcolor: 'background.paper', // #2C3E50
         },
       }}
     >
-      <DialogTitle>Новая экспертиза для объекта #{objectId}</DialogTitle>
-      <DialogContent>
+      <DialogTitle sx={{ color: 'text.primary' }}>Новая экспертиза для объекта #{objectId}</DialogTitle>
+      <DialogContent sx={{ bgcolor: 'background.paper' }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
           {error && (
             <Typography color="error" sx={{ mb: 1 }}>
@@ -182,6 +183,7 @@ const NewExpertiseModal: React.FC<NewExpertiseModalProps> = ({ open, onClose, ob
             inputProps={{ accept: 'image/*' }}
             onChange={handleImageChange}
             disabled={loading}
+            sx={{ color: 'text.primary' }}
           />
 
           {imageBase64 && (
@@ -189,7 +191,7 @@ const NewExpertiseModal: React.FC<NewExpertiseModalProps> = ({ open, onClose, ob
               component="img"
               image={`data:image/jpeg;base64,${imageBase64}`}
               alt="Предпросмотр изображения"
-              sx={{ maxWidth: 200, borderRadius: 1 }}
+              sx={{ maxWidth: 200, borderRadius: 1, border: '1px solid #BDC3C7' }}
             />
           )}
 
@@ -198,22 +200,24 @@ const NewExpertiseModal: React.FC<NewExpertiseModalProps> = ({ open, onClose, ob
             inputProps={{ accept: '.pdf,.doc,.docx' }}
             onChange={handleDocumentChange}
             disabled={loading}
+            sx={{ color: 'text.primary' }}
           />
 
           {documentFileName && (
-            <Typography variant="caption">
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
               Выбран документ: {documentFileName}
             </Typography>
           )}
         </Box>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} disabled={loading}>
+      <DialogActions sx={{ bgcolor: 'background.paper' }}>
+        <Button onClick={onClose} disabled={loading} color="secondary">
           Отмена
         </Button>
         <Button
           onClick={handleSubmit}
           variant="contained"
+          color="primary"
           disabled={loading || !status || !message}
         >
           Сохранить

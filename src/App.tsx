@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import { CssBaseline, Container, Typography, Box, Button, Stack } from '@mui/material';
+import { CssBaseline, Container, Typography, Box, Button, Stack, ThemeProvider } from '@mui/material';
 import IFCViewer from './components/IFCViewer';
 import ParametersModal from './components/ParametersModal';
 import NewExpertiseModal from './components/NewExpertiseModal';
+import theme from './theme';
 
 interface ParameterDetails {
   paramDefId: number;
@@ -22,20 +23,20 @@ const MainPage: React.FC = () => {
   const [selectedObjectId, setSelectedObjectId] = useState<number | null>(null);
 
   return (
-    <Container maxWidth="xl" sx={{ padding: '20px' }}>
-      <Typography variant="h4" align="center" gutterBottom>
+    <Container maxWidth="xl" sx={{ padding: '20px', bgcolor: 'background.default', minHeight: '100vh' }}>
+      <Typography variant="h4" align="center" gutterBottom sx={{ color: 'text.primary' }}>
         Ведение ЭИМ
       </Typography>
       <Box sx={{ mt: 4 }}>
-        <Stack direction="row" spacing={2} justifyContent="center" sx={{ mb: 2 }}>
-          <Button variant="contained" onClick={() => alert('Функционал профиля пока не реализован')}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center" sx={{ mb: 2 }}>
+          <Button variant="contained" color="secondary" onClick={() => alert('Функционал профиля пока не реализован')}>
             Профиль
           </Button>
-          <Button variant="contained" onClick={() => setIsParametersModalOpen(true)}>
+          <Button variant="contained" color="primary" onClick={() => setIsParametersModalOpen(true)}>
             Просмотр и добавление данных
           </Button>
         </Stack>
-        <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+        <Box sx={{ width: { xs: '100%', md: '95%' }, mx: 'auto' }}>
           <IFCViewer />
         </Box>
       </Box>
@@ -63,12 +64,14 @@ const MainPage: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <BrowserRouter>
-      <CssBaseline />
-      <Routes>
-        <Route path="/" element={<MainPage />} />
-      </Routes>
-    </BrowserRouter>
+    <ThemeProvider theme={theme}>
+      <BrowserRouter>
+        <CssBaseline />
+        <Routes>
+          <Route path="/" element={<MainPage />} />
+        </Routes>
+      </BrowserRouter>
+    </ThemeProvider>
   );
 };
 

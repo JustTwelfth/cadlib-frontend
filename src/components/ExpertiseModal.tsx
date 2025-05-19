@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { 
-  Modal, 
-  Box, 
-  Typography, 
-  Button, 
+import {
+  Modal,
+  Box,
+  Typography,
+  Button,
   CircularProgress,
   Divider,
   Alert,
   CardMedia,
-  Link
+  Link,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
@@ -24,7 +24,7 @@ interface Expertise {
   imageBase64?: string | null;
   documentBase64?: string | null;
   documentFileName?: string | null;
-  hazardCategory?: string | null; // Новое поле
+  hazardCategory?: string | null;
 }
 
 interface ExpertiseModalProps {
@@ -45,7 +45,7 @@ const ExpertiseModal: React.FC<ExpertiseModalProps> = ({ open, onClose, objectId
 
       setLoading(true);
       setError('');
-      
+
       try {
         const response = await axios.get<Expertise[]>(
           `https://localhost:7075/api/expertise/by-object/${objectId}`
@@ -64,14 +64,14 @@ const ExpertiseModal: React.FC<ExpertiseModalProps> = ({ open, onClose, objectId
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'Не указана';
-    
+
     try {
       return new Date(dateString).toLocaleDateString('ru-RU', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
       });
     } catch {
       return 'Некорректная дата';
@@ -79,23 +79,27 @@ const ExpertiseModal: React.FC<ExpertiseModalProps> = ({ open, onClose, objectId
   };
 
   return (
-    <Modal 
-      open={open} 
+    <Modal
+      open={open}
       onClose={onClose}
       aria-labelledby="expertise-modal-title"
+      sx={{ zIndex: 1350 }}
     >
-      <Box sx={{ 
-        bgcolor: 'background.paper',
-        p: 4,
-        maxWidth: 800,
-        margin: '5% auto',
-        borderRadius: 2,
-        maxHeight: '80vh',
-        overflowY: 'auto'
-      }}>
-        <Typography 
-          variant="h5" 
-          component="h2" 
+      <Box
+        sx={{
+          bgcolor: 'background.paper', // #2C3E50
+          p: 4,
+          maxWidth: { xs: '90%', md: 800 },
+          margin: '5% auto',
+          borderRadius: 2,
+          maxHeight: '80vh',
+          overflowY: 'auto',
+          color: 'text.primary', // #ECF0F1
+        }}
+      >
+        <Typography
+          variant="h5"
+          component="h2"
           gutterBottom
           id="expertise-modal-title"
         >
@@ -110,17 +114,17 @@ const ExpertiseModal: React.FC<ExpertiseModalProps> = ({ open, onClose, objectId
 
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-            <CircularProgress />
+            <CircularProgress sx={{ color: 'primary.main' }} />
           </Box>
         ) : expertises.length === 0 ? (
-          <Typography color="text.secondary">
+          <Typography sx={{ color: 'text.secondary' }}>
             Нет доступных экспертиз для этого объекта
           </Typography>
         ) : (
           expertises.map((expertise, index) => (
             <Box key={expertise.idNode} sx={{ mb: 3 }}>
               <Box sx={{ display: 'flex', gap: 2, mb: 1 }}>
-                <Typography variant="body1" color="text.secondary">
+                <Typography variant="body1" sx={{ color: 'text.secondary' }}>
                   #{expertise.idNode}
                 </Typography>
                 <Typography variant="subtitle1">
@@ -137,7 +141,10 @@ const ExpertiseModal: React.FC<ExpertiseModalProps> = ({ open, onClose, objectId
               </Typography>
 
               {expertise.comment && (
-                <Typography variant="body2" sx={{ color: '#666', mb: 1 }}>
+                <Typography
+                  variant="body2"
+                  sx={{ color: 'text.secondary', mb: 1 }}
+                >
                   <strong>Комментарий:</strong> {expertise.comment}
                 </Typography>
               )}
@@ -149,7 +156,11 @@ const ExpertiseModal: React.FC<ExpertiseModalProps> = ({ open, onClose, objectId
               )}
 
               {expertise.idFile && (
-                <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+                <Typography
+                  variant="caption"
+                  display="block"
+                  sx={{ mt: 1, color: 'text.secondary' }}
+                >
                   Прикреплён файл: #{expertise.idFile}
                 </Typography>
               )}
@@ -159,17 +170,26 @@ const ExpertiseModal: React.FC<ExpertiseModalProps> = ({ open, onClose, objectId
                   component="img"
                   image={`data:image/jpeg;base64,${expertise.imageBase64}`}
                   alt={`Изображение экспертизы #${expertise.idNode}`}
-                  sx={{ maxWidth: '100%', maxHeight: 200, mt: 2, borderRadius: 1 }}
+                  sx={{
+                    maxWidth: '100%',
+                    maxHeight: 200,
+                    mt: 2,
+                    borderRadius: 1,
+                    border: '1px solid #BDC3C7',
+                  }}
                 />
               )}
 
               {expertise.documentBase64 && expertise.documentFileName && (
-                <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+                <Typography
+                  variant="caption"
+                  display="block"
+                  sx={{ mt: 1, color: 'text.secondary' }}
+                >
                   <strong>Документ:</strong>{' '}
                   <Link
                     href={`data:application/octet-stream;base64,${expertise.documentBase64}`}
                     download={expertise.documentFileName}
-                    sx={{ cursor: 'pointer' }}
                   >
                     Скачать {expertise.documentFileName}
                   </Link>
@@ -183,10 +203,10 @@ const ExpertiseModal: React.FC<ExpertiseModalProps> = ({ open, onClose, objectId
           ))
         )}
 
-        <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
-          
+        <Box sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
           <Button
-            variant="outlined"
+            variant="contained"
+            color="secondary"
             onClick={onClose}
           >
             Закрыть
