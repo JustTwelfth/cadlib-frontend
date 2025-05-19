@@ -99,26 +99,21 @@ const IFCViewer: React.FC = () => {
           // Создаём уникальный материал для выбранного меша
           let highlightMaterial: THREE.MeshStandardMaterial;
           if (Array.isArray(mesh.material)) {
-            // Если материал — массив, берём первый и клонируем как MeshStandardMaterial
-            const baseMaterial = mesh.material[0];
+            console.log('mesh.material is array:', mesh.material);
             highlightMaterial = new THREE.MeshStandardMaterial({
               color: 0xffff00,
               side: THREE.DoubleSide,
             });
-            console.log('Массив материалов, создан новый MeshStandardMaterial');
           } else {
-            // Если материал одиночный, проверяем тип
+            console.log('mesh.material is single:', mesh.material);
             if (mesh.material instanceof THREE.MeshStandardMaterial) {
-              highlightMaterial = mesh.material.clone() as THREE.MeshStandardMaterial;
-              highlightMaterial.color.set(0xffff00); // Жёлтый цвет
-              console.log('Одиночный MeshStandardMaterial, клонирован');
+              highlightMaterial = mesh.material.clone();
+              highlightMaterial.color.set(0xffff00);
             } else {
-              // Если материал не MeshStandardMaterial, создаём новый
               highlightMaterial = new THREE.MeshStandardMaterial({
                 color: 0xffff00,
                 side: THREE.DoubleSide,
               });
-              console.log('Неизвестный материал, создан новый MeshStandardMaterial');
             }
           }
           mesh.material = highlightMaterial;
@@ -134,8 +129,7 @@ const IFCViewer: React.FC = () => {
               const expressID = mesh.userData.expressID;
               console.log('ExpressID элемента:', expressID);
 
-              // Получаем свойства через web-ifc
-              const modelID = 0; // Первая модель в web-ifc
+              const modelID = 0;
               const props = await ifcLoader.webIfc.GetLine(modelID, expressID, true);
               console.log('Свойства элемента:', props);
 
@@ -163,7 +157,7 @@ const IFCViewer: React.FC = () => {
       }
     };
 
-    // Откладываем добавление слушателя клика, чтобы камера инициализировалась
+    // Откладываем добавление слушателя клика
     const timeoutId = setTimeout(() => {
       if (containerRef.current && world.camera.three) {
         containerRef.current.addEventListener('click', handleClick);
@@ -185,19 +179,21 @@ const IFCViewer: React.FC = () => {
           return;
         }
 
-        // Применяем базовый материал ко всем мешам, создавая уникальные экземпляры
+        // Применяем базовый материал
         ifcModel.traverse((child) => {
           if (child instanceof THREE.Mesh) {
-            console.log('Материал меша:', child.material);
+            console.log('Загрузка: mesh.material:', child.material);
             let newMaterial: THREE.MeshStandardMaterial;
             if (Array.isArray(child.material)) {
+              console.log('Загрузка: mesh.material is array:', child.material);
               newMaterial = new THREE.MeshStandardMaterial({
                 color: 0xaaaaaa,
                 side: THREE.DoubleSide,
               });
             } else {
+              console.log('Загрузка: mesh.material is single:', child.material);
               if (child.material instanceof THREE.MeshStandardMaterial) {
-                newMaterial = child.material.clone() as THREE.MeshStandardMaterial;
+                newMaterial = child.material.clone();
                 newMaterial.color.set(0xaaaaaa);
               } else {
                 newMaterial = new THREE.MeshStandardMaterial({
@@ -244,7 +240,29 @@ const IFCViewer: React.FC = () => {
       inputRef.current?.removeEventListener('change', handleFileChange);
       containerRef.current?.removeEventListener('click', handleClick);
       clearTimeout(timeoutId);
-      components.dispose();
+
+      // Очистка материалов перед dispose
+      if (ifcModelRef.current) {
+        console.log('Очистка: начало очистки материалов');
+        ifcModelRef.current.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            console.log('Очистка: mesh.material:', child.material);
+            if (child.material) {
+              // Устанавливаем null для одиночного материала или пустой массив
+              child.material = null;
+            }
+          }
+        });
+        console.log('Очистка: материалы очищены');
+      }
+
+      try {
+        components.dispose();
+        console.log('Компоненты очищены');
+      } catch (error) {
+        console.error('Ошибка при очистке компонентов:', error);
+      }
+
       if (containerRef.current) {
         containerRef.current.innerHTML = '';
       }

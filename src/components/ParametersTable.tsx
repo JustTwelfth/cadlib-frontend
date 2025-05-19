@@ -13,7 +13,7 @@ import {
   TextField,
   Box,
   IconButton,
-  Button
+  Button,
 } from '@mui/material';
 import { Undo } from '@mui/icons-material';
 import ExpertiseModal from './ExpertiseModal';
@@ -27,19 +27,34 @@ interface ParameterDetails {
   tempValue?: string;
 }
 
-export default function ParametersTable() {
-  const [data, setData] = useState<ParameterDetails[]>([]);
+interface ParametersTableProps {
+  onNewExpertise?: (objectId: number) => void;
+  searchObject: string;
+  setSearchObject: React.Dispatch<React.SetStateAction<string>>;
+  parametersData: ParameterDetails[];
+  setParametersData: React.Dispatch<React.SetStateAction<ParameterDetails[]>>;
+  selectedObjectId: number | null;
+  setSelectedObjectId: React.Dispatch<React.SetStateAction<number | null>>;
+}
+
+const ParametersTable: React.FC<ParametersTableProps> = ({
+  onNewExpertise,
+  searchObject,
+  setSearchObject,
+  parametersData,
+  setParametersData,
+  selectedObjectId,
+  setSelectedObjectId,
+}) => {
   const [loading, setLoading] = useState(false);
   const [globalError, setGlobalError] = useState('');
-  const [searchObject, setSearchObject] = useState('');
-  const [selectedObjectId, setSelectedObjectId] = useState<number | null>(null);
   const [expertiseModalOpen, setExpertiseModalOpen] = useState(false);
 
   // Загрузка данных
   useEffect(() => {
     const fetchData = async () => {
       if (!searchObject.trim()) {
-        setData([]);
+        setParametersData([]);
         setSelectedObjectId(null);
         return;
       }
@@ -51,9 +66,9 @@ export default function ParametersTable() {
           { params: { objectName: searchObject } }
         );
 
-        setData(response.data);
+        setParametersData(response.data);
         setGlobalError('');
-        
+
         if (response.data.length > 0) {
           setSelectedObjectId(response.data[0].objectId);
         } else {
@@ -61,7 +76,7 @@ export default function ParametersTable() {
         }
       } catch (err) {
         setGlobalError('Ошибка при загрузке данных');
-        setData([]);
+        setParametersData([]);
         setSelectedObjectId(null);
       } finally {
         setLoading(false);
@@ -70,7 +85,7 @@ export default function ParametersTable() {
 
     const debounceTimer = setTimeout(fetchData, 500);
     return () => clearTimeout(debounceTimer);
-  }, [searchObject]);
+  }, [searchObject, setParametersData, setSelectedObjectId]);
 
   // Обработчик изменения параметра
   const handleValueChange = async (
@@ -78,12 +93,12 @@ export default function ParametersTable() {
     paramDefId: number,
     newValue: string
   ) => {
-    if (newValue === data.find(p => p.paramDefId === paramDefId)?.paramValue) return;
+    if (newValue === parametersData.find(p => p.paramDefId === paramDefId)?.paramValue) return;
 
-    setData(prev => 
-      prev.map(p => 
-        p.paramDefId === paramDefId 
-          ? { ...p, isEditing: true } 
+    setParametersData(prev =>
+      prev.map(p =>
+        p.paramDefId === paramDefId
+          ? { ...p, isEditing: true }
           : p
       )
     );
@@ -98,7 +113,7 @@ export default function ParametersTable() {
         }
       );
 
-      setData(prev =>
+      setParametersData(prev =>
         prev.map(p =>
           p.paramDefId === paramDefId
             ? { ...response.data, objectId, tempValue: undefined }
@@ -107,7 +122,7 @@ export default function ParametersTable() {
       );
     } catch (err) {
       setGlobalError('Ошибка сохранения параметра');
-      setData(prev =>
+      setParametersData(prev =>
         prev.map(p =>
           p.paramDefId === paramDefId
             ? { ...p, tempValue: p.paramValue }
@@ -115,7 +130,7 @@ export default function ParametersTable() {
         )
       );
     } finally {
-      setData(prev =>
+      setParametersData(prev =>
         prev.map(p =>
           p.paramDefId === paramDefId
             ? { ...p, isEditing: false }
@@ -139,7 +154,7 @@ export default function ParametersTable() {
           size="small"
           disabled={row.isEditing}
           onChange={(e) =>
-            setData(prev =>
+            setParametersData(prev =>
               prev.map(p =>
                 p.paramDefId === row.paramDefId
                   ? { ...p, tempValue: e.target.value }
@@ -147,14 +162,14 @@ export default function ParametersTable() {
               )
             )
           }
-          onBlur={() => 
+          onBlur={() =>
             handleValueChange(row.objectId, row.paramDefId, currentValue)
           }
           sx={{
             width: 150,
             '& .MuiInputBase-input': {
-              borderBottom: row.tempValue !== undefined 
-                ? '2px solid #1976d2' 
+              borderBottom: row.tempValue !== undefined
+                ? '2px solid #1976d2'
                 : '1px solid #ddd'
             }
           }}
@@ -164,7 +179,7 @@ export default function ParametersTable() {
           <IconButton
             size="small"
             onClick={() =>
-              setData(prev =>
+              setParametersData(prev =>
                 prev.map(p =>
                   p.paramDefId === row.paramDefId
                     ? { ...p, tempValue: undefined }
@@ -181,7 +196,7 @@ export default function ParametersTable() {
   };
 
   return (
-    <Box sx={{ maxWidth: 1200, margin: '2rem auto', p: 3 }}>
+    <Box sx={{ margin: '1rem 0' }}>
       <TextField
         fullWidth
         label="Поиск объекта"
@@ -215,8 +230,8 @@ export default function ParametersTable() {
                   <CircularProgress sx={{ my: 3 }} />
                 </TableCell>
               </TableRow>
-            ) : data.length > 0 ? (
-              data.map((row) => (
+            ) : parametersData.length > 0 ? (
+              parametersData.map((row) => (
                 <TableRow key={row.paramDefId}>
                   <TableCell>{row.paramDefId}</TableCell>
                   <TableCell>{row.paramCaption}</TableCell>
@@ -235,20 +250,31 @@ export default function ParametersTable() {
       </TableContainer>
 
       {selectedObjectId !== null && (
-        <Button 
-          variant="contained" 
-          onClick={() => setExpertiseModalOpen(true)}
-          sx={{ mt: 2 }}
-        >
-          Просмотр экспертиз
-        </Button>
+        <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
+          <Button
+            variant="contained"
+            onClick={() => setExpertiseModalOpen(true)}
+          >
+            Просмотр экспертиз
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => onNewExpertise?.(selectedObjectId)}
+          >
+            Создать экспертизу
+          </Button>
+        </Box>
       )}
 
-      <ExpertiseModal 
-        open={expertiseModalOpen} 
-        onClose={() => setExpertiseModalOpen(false)} 
-        objectId={selectedObjectId}
-      />
+      {selectedObjectId !== null && (
+        <ExpertiseModal
+          open={expertiseModalOpen}
+          onClose={() => setExpertiseModalOpen(false)}
+          objectId={selectedObjectId}
+        />
+      )}
     </Box>
   );
-}
+};
+
+export default ParametersTable;

@@ -184,12 +184,6 @@ const ExpertiseModal: React.FC<ExpertiseModalProps> = ({ open, onClose, objectId
         )}
 
         <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
-          <Button
-            variant="contained"
-            onClick={() => navigate(`/expertise/new/${objectId}`)}
-          >
-            Добавить экспертизу
-          </Button>
           
           <Button
             variant="outlined"
