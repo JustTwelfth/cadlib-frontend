@@ -13,7 +13,7 @@ import {
   TextField,
   Box,
   IconButton,
-  Button
+  Button,
 } from '@mui/material';
 import { Undo } from '@mui/icons-material';
 import ExpertiseModal from './ExpertiseModal';
@@ -27,19 +27,42 @@ interface ParameterDetails {
   tempValue?: string;
 }
 
-export default function ParametersTable() {
-  const [data, setData] = useState<ParameterDetails[]>([]);
+interface ParametersTableProps {
+  onNewExpertise?: (objectId: number) => void;
+  searchObject: string;
+  setSearchObject: React.Dispatch<React.SetStateAction<string>>;
+  parametersData: ParameterDetails[];
+  setParametersData: React.Dispatch<React.SetStateAction<ParameterDetails[]>>;
+  selectedObjectId: number | null;
+  setSelectedObjectId: React.Dispatch<React.SetStateAction<number | null>>;
+}
+
+const ParametersTable: React.FC<ParametersTableProps> = ({
+  onNewExpertise,
+  searchObject,
+  setSearchObject,
+  parametersData,
+  setParametersData,
+  selectedObjectId,
+  setSelectedObjectId,
+}) => {
   const [loading, setLoading] = useState(false);
   const [globalError, setGlobalError] = useState('');
-  const [searchObject, setSearchObject] = useState('');
-  const [selectedObjectId, setSelectedObjectId] = useState<number | null>(null);
   const [expertiseModalOpen, setExpertiseModalOpen] = useState(false);
+  const [isEditingMode, setIsEditingMode] = useState(false);
+
+  // Фильтрация данных: скрываем пустые paramValue, если не в режиме редактирования
+  const filteredParametersData = isEditingMode
+    ? parametersData
+    : parametersData.filter(
+        (row) => row.paramValue !== '' && row.paramValue !== null && row.paramValue !== undefined
+      );
 
   // Загрузка данных
   useEffect(() => {
     const fetchData = async () => {
       if (!searchObject.trim()) {
-        setData([]);
+        setParametersData([]);
         setSelectedObjectId(null);
         return;
       }
@@ -51,9 +74,9 @@ export default function ParametersTable() {
           { params: { objectName: searchObject } }
         );
 
-        setData(response.data);
+        setParametersData(response.data);
         setGlobalError('');
-        
+
         if (response.data.length > 0) {
           setSelectedObjectId(response.data[0].objectId);
         } else {
@@ -61,7 +84,7 @@ export default function ParametersTable() {
         }
       } catch (err) {
         setGlobalError('Ошибка при загрузке данных');
-        setData([]);
+        setParametersData([]);
         setSelectedObjectId(null);
       } finally {
         setLoading(false);
@@ -70,7 +93,7 @@ export default function ParametersTable() {
 
     const debounceTimer = setTimeout(fetchData, 500);
     return () => clearTimeout(debounceTimer);
-  }, [searchObject]);
+  }, [searchObject, setParametersData, setSelectedObjectId]);
 
   // Обработчик изменения параметра
   const handleValueChange = async (
@@ -78,13 +101,11 @@ export default function ParametersTable() {
     paramDefId: number,
     newValue: string
   ) => {
-    if (newValue === data.find(p => p.paramDefId === paramDefId)?.paramValue) return;
+    if (newValue === parametersData.find((p) => p.paramDefId === paramDefId)?.paramValue) return;
 
-    setData(prev => 
-      prev.map(p => 
-        p.paramDefId === paramDefId 
-          ? { ...p, isEditing: true } 
-          : p
+    setParametersData((prev) =>
+      prev.map((p) =>
+        p.paramDefId === paramDefId ? { ...p, isEditing: true } : p
       )
     );
 
@@ -94,12 +115,12 @@ export default function ParametersTable() {
         {
           ObjectId: objectId,
           ParamDefId: paramDefId,
-          NewValue: newValue
+          NewValue: newValue,
         }
       );
 
-      setData(prev =>
-        prev.map(p =>
+      setParametersData((prev) =>
+        prev.map((p) =>
           p.paramDefId === paramDefId
             ? { ...response.data, objectId, tempValue: undefined }
             : p
@@ -107,19 +128,15 @@ export default function ParametersTable() {
       );
     } catch (err) {
       setGlobalError('Ошибка сохранения параметра');
-      setData(prev =>
-        prev.map(p =>
-          p.paramDefId === paramDefId
-            ? { ...p, tempValue: p.paramValue }
-            : p
+      setParametersData((prev) =>
+        prev.map((p) =>
+          p.paramDefId === paramDefId ? { ...p, tempValue: p.paramValue } : p
         )
       );
     } finally {
-      setData(prev =>
-        prev.map(p =>
-          p.paramDefId === paramDefId
-            ? { ...p, isEditing: false }
-            : p
+      setParametersData((prev) =>
+        prev.map((p) =>
+          p.paramDefId === paramDefId ? { ...p, isEditing: false } : p
         )
       );
     }
@@ -131,47 +148,44 @@ export default function ParametersTable() {
 
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        {row.isEditing && <CircularProgress size={20} />}
+        {row.isEditing && <CircularProgress size={20} sx={{ color: 'primary.main' }} />}
 
         <TextField
           value={currentValue}
           variant="standard"
           size="small"
-          disabled={row.isEditing}
+          disabled={!isEditingMode} // Заблокировано в режиме просмотра
+          inputProps={{ readOnly: !isEditingMode }} // Дополнительная защита
           onChange={(e) =>
-            setData(prev =>
-              prev.map(p =>
-                p.paramDefId === row.paramDefId
-                  ? { ...p, tempValue: e.target.value }
-                  : p
+            isEditingMode &&
+            setParametersData((prev) =>
+              prev.map((p) =>
+                p.paramDefId === row.paramDefId ? { ...p, tempValue: e.target.value } : p
               )
             )
           }
-          onBlur={() => 
-            handleValueChange(row.objectId, row.paramDefId, currentValue)
-          }
+          onBlur={() => isEditingMode && handleValueChange(row.objectId, row.paramDefId, currentValue)}
           sx={{
             width: 150,
             '& .MuiInputBase-input': {
-              borderBottom: row.tempValue !== undefined 
-                ? '2px solid #1976d2' 
-                : '1px solid #ddd'
-            }
+              color: 'text.primary',
+              borderBottom:
+                row.tempValue !== undefined ? '2px solid #3498DB' : '1px solid #BDC3C7',
+            },
           }}
         />
 
-        {row.tempValue !== undefined && (
+        {row.tempValue !== undefined && isEditingMode && (
           <IconButton
             size="small"
             onClick={() =>
-              setData(prev =>
-                prev.map(p =>
-                  p.paramDefId === row.paramDefId
-                    ? { ...p, tempValue: undefined }
-                    : p
+              setParametersData((prev) =>
+                prev.map((p) =>
+                  p.paramDefId === row.paramDefId ? { ...p, tempValue: undefined } : p
                 )
               )
             }
+            sx={{ color: 'text.secondary' }}
           >
             <Undo fontSize="small" />
           </IconButton>
@@ -181,7 +195,7 @@ export default function ParametersTable() {
   };
 
   return (
-    <Box sx={{ maxWidth: 1200, margin: '2rem auto', p: 3 }}>
+    <Box sx={{ margin: '1rem 0' }}>
       <TextField
         fullWidth
         label="Поиск объекта"
@@ -200,7 +214,7 @@ export default function ParametersTable() {
 
       <TableContainer component={Paper}>
         <Table>
-          <TableHead sx={{ bgcolor: '#f5f5f5' }}>
+          <TableHead>
             <TableRow>
               <TableCell width={100}>ID параметра</TableCell>
               <TableCell>Название параметра</TableCell>
@@ -212,11 +226,11 @@ export default function ParametersTable() {
             {loading ? (
               <TableRow>
                 <TableCell colSpan={3} align="center">
-                  <CircularProgress sx={{ my: 3 }} />
+                  <CircularProgress sx={{ my: 3, color: 'primary.main' }} />
                 </TableCell>
               </TableRow>
-            ) : data.length > 0 ? (
-              data.map((row) => (
+            ) : filteredParametersData.length > 0 ? (
+              filteredParametersData.map((row) => (
                 <TableRow key={row.paramDefId}>
                   <TableCell>{row.paramDefId}</TableCell>
                   <TableCell>{row.paramCaption}</TableCell>
@@ -225,7 +239,7 @@ export default function ParametersTable() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={3} align="center">
+                <TableCell colSpan={3} align="center" sx={{ color: 'text.secondary' }}>
                   {searchObject ? 'Ничего не найдено' : 'Введите название объекта'}
                 </TableCell>
               </TableRow>
@@ -235,20 +249,40 @@ export default function ParametersTable() {
       </TableContainer>
 
       {selectedObjectId !== null && (
-        <Button 
-          variant="contained" 
-          onClick={() => setExpertiseModalOpen(true)}
-          sx={{ mt: 2 }}
-        >
-          Просмотр экспертиз
-        </Button>
+        <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => setExpertiseModalOpen(true)}
+          >
+            Просмотр экспертиз
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => onNewExpertise?.(selectedObjectId)}
+          >
+            Создать экспертизу
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => setIsEditingMode((prev) => !prev)}
+          >
+            {isEditingMode ? 'Завершить редактирование' : 'Редактировать'}
+          </Button>
+        </Box>
       )}
 
-      <ExpertiseModal 
-        open={expertiseModalOpen} 
-        onClose={() => setExpertiseModalOpen(false)} 
-        objectId={selectedObjectId}
-      />
+      {selectedObjectId !== null && (
+        <ExpertiseModal
+          open={expertiseModalOpen}
+          onClose={() => setExpertiseModalOpen(false)}
+          objectId={selectedObjectId}
+        />
+      )}
     </Box>
   );
-}
+};
+
+export default ParametersTable;

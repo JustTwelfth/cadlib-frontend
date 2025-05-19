@@ -4,6 +4,7 @@ import * as Fragments from '@thatopen/fragments';
 import * as THREE from 'three';
 import * as WEBIFC from 'web-ifc';
 import axios from 'axios';
+import { Box } from '@mui/material';
 
 const IFCViewer: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -30,7 +31,7 @@ const IFCViewer: React.FC = () => {
       OBC.SimpleRenderer
     >();
     world.scene = new OBC.SimpleScene(components);
-    world.scene.three.background = new THREE.Color(0xcccccc);
+    world.scene.three.background = new THREE.Color('#2C3E50'); // Тёмно-серый фон
     world.renderer = new OBC.SimpleRenderer(components, containerRef.current);
     world.renderer.three.setPixelRatio(window.devicePixelRatio);
     world.camera = new OBC.SimpleCamera(components);
@@ -40,8 +41,8 @@ const IFCViewer: React.FC = () => {
     console.log('Камера:', world.camera.three);
 
     // Добавляем освещение
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    const ambientLight = new THREE.AmbientLight('#ECF0F1', 0.8); // Светло-серый свет
+    const directionalLight = new THREE.DirectionalLight('#ECF0F1', 0.5);
     directionalLight.position.set(10, 20, 10);
     world.scene.three.add(ambientLight, directionalLight);
     console.log('Освещение добавлено');
@@ -53,7 +54,7 @@ const IFCViewer: React.FC = () => {
 
     // Тестовый куб
     const geometry = new THREE.BoxGeometry(1, 1, 1);
-    const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+    const material = new THREE.MeshStandardMaterial({ color: '#7F8C8D' }); // Серый куб
     const cube = new THREE.Mesh(geometry, material);
     world.scene.three.add(cube);
     console.log('Тестовый куб добавлен');
@@ -99,26 +100,21 @@ const IFCViewer: React.FC = () => {
           // Создаём уникальный материал для выбранного меша
           let highlightMaterial: THREE.MeshStandardMaterial;
           if (Array.isArray(mesh.material)) {
-            // Если материал — массив, берём первый и клонируем как MeshStandardMaterial
-            const baseMaterial = mesh.material[0];
+            console.log('mesh.material is array:', mesh.material);
             highlightMaterial = new THREE.MeshStandardMaterial({
-              color: 0xffff00,
+              color: '#FFFF00', // Жёлтое выделение
               side: THREE.DoubleSide,
             });
-            console.log('Массив материалов, создан новый MeshStandardMaterial');
           } else {
-            // Если материал одиночный, проверяем тип
+            console.log('mesh.material is single:', mesh.material);
             if (mesh.material instanceof THREE.MeshStandardMaterial) {
-              highlightMaterial = mesh.material.clone() as THREE.MeshStandardMaterial;
-              highlightMaterial.color.set(0xffff00); // Жёлтый цвет
-              console.log('Одиночный MeshStandardMaterial, клонирован');
+              highlightMaterial = mesh.material.clone();
+              highlightMaterial.color.set('#FFFF00');
             } else {
-              // Если материал не MeshStandardMaterial, создаём новый
               highlightMaterial = new THREE.MeshStandardMaterial({
-                color: 0xffff00,
+                color: '#FFFF00',
                 side: THREE.DoubleSide,
               });
-              console.log('Неизвестный материал, создан новый MeshStandardMaterial');
             }
           }
           mesh.material = highlightMaterial;
@@ -134,8 +130,7 @@ const IFCViewer: React.FC = () => {
               const expressID = mesh.userData.expressID;
               console.log('ExpressID элемента:', expressID);
 
-              // Получаем свойства через web-ifc
-              const modelID = 0; // Первая модель в web-ifc
+              const modelID = 0;
               const props = await ifcLoader.webIfc.GetLine(modelID, expressID, true);
               console.log('Свойства элемента:', props);
 
@@ -163,7 +158,7 @@ const IFCViewer: React.FC = () => {
       }
     };
 
-    // Откладываем добавление слушателя клика, чтобы камера инициализировалась
+    // Откладываем добавление слушателя клика
     const timeoutId = setTimeout(() => {
       if (containerRef.current && world.camera.three) {
         containerRef.current.addEventListener('click', handleClick);
@@ -185,23 +180,25 @@ const IFCViewer: React.FC = () => {
           return;
         }
 
-        // Применяем базовый материал ко всем мешам, создавая уникальные экземпляры
+        // Применяем базовый материал
         ifcModel.traverse((child) => {
           if (child instanceof THREE.Mesh) {
-            console.log('Материал меша:', child.material);
+            console.log('Загрузка: mesh.material:', child.material);
             let newMaterial: THREE.MeshStandardMaterial;
             if (Array.isArray(child.material)) {
+              console.log('Загрузка: mesh.material is array:', child.material);
               newMaterial = new THREE.MeshStandardMaterial({
-                color: 0xaaaaaa,
+                color: '#AAAAAA', // Серая модель
                 side: THREE.DoubleSide,
               });
             } else {
+              console.log('Загрузка: mesh.material is single:', child.material);
               if (child.material instanceof THREE.MeshStandardMaterial) {
-                newMaterial = child.material.clone() as THREE.MeshStandardMaterial;
-                newMaterial.color.set(0xaaaaaa);
+                newMaterial = child.material.clone();
+                newMaterial.color.set('#AAAAAA');
               } else {
                 newMaterial = new THREE.MeshStandardMaterial({
-                  color: 0xaaaaaa,
+                  color: '#AAAAAA',
                   side: THREE.DoubleSide,
                 });
               }
@@ -244,7 +241,28 @@ const IFCViewer: React.FC = () => {
       inputRef.current?.removeEventListener('change', handleFileChange);
       containerRef.current?.removeEventListener('click', handleClick);
       clearTimeout(timeoutId);
-      components.dispose();
+
+      // Очистка материалов перед dispose
+      if (ifcModelRef.current) {
+        console.log('Очистка: начало очистки материалов');
+        ifcModelRef.current.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            console.log('Очистка: mesh.material:', child.material);
+            if (child.material) {
+              child.material = null;
+            }
+          }
+        });
+        console.log('Очистка: материалы очищены');
+      }
+
+      try {
+        components.dispose();
+        console.log('Компоненты очищены');
+      } catch (error) {
+        console.error('Ошибка при очистке компонентов:', error);
+      }
+
       if (containerRef.current) {
         containerRef.current.innerHTML = '';
       }
@@ -254,12 +272,12 @@ const IFCViewer: React.FC = () => {
   }, []);
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center' }}>
-      <div>
+    <Box sx={{ display: 'flex', justifyContent: 'center', bgcolor: '#2C3E50' }}>
+      <Box sx={{ width: '100%', maxWidth: '100%' }}>
         <input type="file" accept=".ifc" ref={inputRef} />
-        <div ref={containerRef} style={{ width: '700px', height: '600px' }} />
-      </div>
-    </div>
+        <div ref={containerRef} style={{ width: '100%', height: '630px' }} />
+      </Box>
+    </Box>
   );
 };
 

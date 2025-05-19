@@ -1,41 +1,77 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import { CssBaseline, Container, Typography, Grid, Box } from '@mui/material';
+import { CssBaseline, Container, Typography, Box, Button, Stack, ThemeProvider } from '@mui/material';
 import IFCViewer from './components/IFCViewer';
-import ParametersTable from './components/ParametersTable';
-import NewExpertisePage from './pages/NewExpertisePage';
+import ParametersModal from './components/ParametersModal';
+import NewExpertiseModal from './components/NewExpertiseModal';
+import theme from './theme';
+
+interface ParameterDetails {
+  paramDefId: number;
+  objectId: number;
+  paramCaption: string;
+  paramValue: string;
+  isEditing?: boolean;
+  tempValue?: string;
+}
 
 const MainPage: React.FC = () => {
+  const [isParametersModalOpen, setIsParametersModalOpen] = useState(false);
+  const [newExpertiseObjectId, setNewExpertiseObjectId] = useState<number | null>(null);
+  const [searchObject, setSearchObject] = useState('');
+  const [parametersData, setParametersData] = useState<ParameterDetails[]>([]);
+  const [selectedObjectId, setSelectedObjectId] = useState<number | null>(null);
+
   return (
-    <Container maxWidth="xl" sx={{ padding: '20px' }}>
-      <Typography variant="h4" align="center" gutterBottom>
+    <Container maxWidth="xl" sx={{ padding: '20px', bgcolor: 'background.default', minHeight: '100vh' }}>
+      <Typography variant="h4" align="center" gutterBottom sx={{ color: 'text.primary' }}>
         Ведение ЭИМ
       </Typography>
       <Box sx={{ mt: 4 }}>
-        <Grid container spacing={4}>
-          <Grid xs={12} md={6} {...({ item: true } as any)}>
-            <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-              <IFCViewer />
-            </Box>
-          </Grid>
-          <Grid xs={12} md={6} {...({ item: true } as any)}>
-            <ParametersTable />
-          </Grid>
-        </Grid>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center" sx={{ mb: 2 }}>
+          <Button variant="contained" color="secondary" onClick={() => alert('Функционал профиля пока не реализован')}>
+            Профиль
+          </Button>
+          <Button variant="contained" color="primary" onClick={() => setIsParametersModalOpen(true)}>
+            Просмотр и добавление данных
+          </Button>
+        </Stack>
+        <Box sx={{ width: { xs: '100%', md: '95%' }, mx: 'auto' }}>
+          <IFCViewer />
+        </Box>
       </Box>
+      <ParametersModal
+        open={isParametersModalOpen}
+        onClose={() => setIsParametersModalOpen(false)}
+        onNewExpertise={(objectId) => setNewExpertiseObjectId(objectId)}
+        searchObject={searchObject}
+        setSearchObject={setSearchObject}
+        parametersData={parametersData}
+        setParametersData={setParametersData}
+        selectedObjectId={selectedObjectId}
+        setSelectedObjectId={setSelectedObjectId}
+      />
+      {newExpertiseObjectId !== null && (
+        <NewExpertiseModal
+          open={!!newExpertiseObjectId}
+          onClose={() => setNewExpertiseObjectId(null)}
+          objectId={newExpertiseObjectId}
+        />
+      )}
     </Container>
   );
 };
 
 const App: React.FC = () => {
   return (
-    <BrowserRouter>
-      <CssBaseline />
-      <Routes>
-        <Route path="/" element={<MainPage />} />
-        <Route path="/expertise/new/:objectId" element={<NewExpertisePage />} />
-      </Routes>
-    </BrowserRouter>
+    <ThemeProvider theme={theme}>
+      <BrowserRouter>
+        <CssBaseline />
+        <Routes>
+          <Route path="/" element={<MainPage />} />
+        </Routes>
+      </BrowserRouter>
+    </ThemeProvider>
   );
 };
 
