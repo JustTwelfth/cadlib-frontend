@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { CssBaseline, Container, Typography, Box, Button, Stack, ThemeProvider } from '@mui/material';
-import IFCViewer from './components/IFCViewer';
 import ParametersModal from './components/ParametersModal';
 import NewExpertiseModal from './components/NewExpertiseModal';
+import TestIfcViewer from './components/testifcviewer';
 import theme from './theme';
 
 interface ParameterDetails {
@@ -21,6 +21,7 @@ const MainPage: React.FC = () => {
   const [searchObject, setSearchObject] = useState('');
   const [parametersData, setParametersData] = useState<ParameterDetails[]>([]);
   const [selectedObjectId, setSelectedObjectId] = useState<number | null>(null);
+  const [selectedCdeid, setSelectedCdeid] = useState<string | null>(null);
 
   return (
     <Container maxWidth="xl" sx={{ padding: '20px', bgcolor: 'background.default', minHeight: '100vh' }}>
@@ -37,7 +38,7 @@ const MainPage: React.FC = () => {
           </Button>
         </Stack>
         <Box sx={{ width: { xs: '100%', md: '95%' }, mx: 'auto' }}>
-          <IFCViewer />
+          <TestIfcViewer setSelectedCdeid={setSelectedCdeid} />
         </Box>
       </Box>
       <ParametersModal
@@ -50,6 +51,7 @@ const MainPage: React.FC = () => {
         setParametersData={setParametersData}
         selectedObjectId={selectedObjectId}
         setSelectedObjectId={setSelectedObjectId}
+        selectedCdeid={selectedCdeid}
       />
       {newExpertiseObjectId !== null && (
         <NewExpertiseModal

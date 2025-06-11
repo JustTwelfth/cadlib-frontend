@@ -21,6 +21,7 @@ interface ParametersModalProps {
   setParametersData: React.Dispatch<React.SetStateAction<ParameterDetails[]>>;
   selectedObjectId: number | null;
   setSelectedObjectId: React.Dispatch<React.SetStateAction<number | null>>;
+  selectedCdeid: string | null;
 }
 
 const ParametersModal: React.FC<ParametersModalProps> = ({
@@ -33,6 +34,7 @@ const ParametersModal: React.FC<ParametersModalProps> = ({
   setParametersData,
   selectedObjectId,
   setSelectedObjectId,
+  selectedCdeid,
 }) => {
   return (
     <Dialog
@@ -50,7 +52,7 @@ const ParametersModal: React.FC<ParametersModalProps> = ({
           width: { xs: '100%', md: '50%' },
           maxHeight: '100%',
           borderRadius: { xs: 0, md: '8px 0 0 8px' },
-          zIndex: 1300, // Убедимся, что выше NewExpertiseModal
+          zIndex: 1300,
         },
       }}
     >
@@ -64,6 +66,7 @@ const ParametersModal: React.FC<ParametersModalProps> = ({
             setParametersData={setParametersData}
             selectedObjectId={selectedObjectId}
             setSelectedObjectId={setSelectedObjectId}
+            selectedCdeid={selectedCdeid}
           />
         </Box>
       </DialogContent>

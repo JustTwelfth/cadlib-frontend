@@ -103,7 +103,7 @@ const ExpertiseModal: React.FC<ExpertiseModalProps> = ({ open, onClose, objectId
           gutterBottom
           id="expertise-modal-title"
         >
-          Экспертизы объекта #{objectId}
+          Дефекты объекта #{objectId}
         </Typography>
 
         {error && (
@@ -118,7 +118,7 @@ const ExpertiseModal: React.FC<ExpertiseModalProps> = ({ open, onClose, objectId
           </Box>
         ) : expertises.length === 0 ? (
           <Typography sx={{ color: 'text.secondary' }}>
-            Нет доступных экспертиз для этого объекта
+            Записи дефектов для данного объекта отсутствуют
           </Typography>
         ) : (
           expertises.map((expertise, index) => (

@@ -35,6 +35,7 @@ interface ParametersTableProps {
   setParametersData: React.Dispatch<React.SetStateAction<ParameterDetails[]>>;
   selectedObjectId: number | null;
   setSelectedObjectId: React.Dispatch<React.SetStateAction<number | null>>;
+  selectedCdeid: string | null;
 }
 
 const ParametersTable: React.FC<ParametersTableProps> = ({
@@ -45,41 +46,50 @@ const ParametersTable: React.FC<ParametersTableProps> = ({
   setParametersData,
   selectedObjectId,
   setSelectedObjectId,
+  selectedCdeid,
 }) => {
   const [loading, setLoading] = useState(false);
   const [globalError, setGlobalError] = useState('');
   const [expertiseModalOpen, setExpertiseModalOpen] = useState(false);
   const [isEditingMode, setIsEditingMode] = useState(false);
+  const [paramErrors, setParamErrors] = useState<{ [key: number]: string }>({});
 
-  // Фильтрация данных: скрываем пустые paramValue, если не в режиме редактирования
   const filteredParametersData = isEditingMode
     ? parametersData
     : parametersData.filter(
         (row) => row.paramValue !== '' && row.paramValue !== null && row.paramValue !== undefined
       );
 
-  // Загрузка данных
   useEffect(() => {
     const fetchData = async () => {
-      if (!searchObject.trim()) {
-        setParametersData([]);
-        setSelectedObjectId(null);
-        return;
-      }
-
       setLoading(true);
       try {
-        const response = await axios.get<ParameterDetails[]>(
-          'https://localhost:7075/api/parameters/search',
-          { params: { objectName: searchObject } }
-        );
-
-        setParametersData(response.data);
-        setGlobalError('');
-
-        if (response.data.length > 0) {
-          setSelectedObjectId(response.data[0].objectId);
+        if (selectedCdeid) {
+          const response = await axios.get<ParameterDetails[]>(
+            'https://localhost:7075/api/parameters/search-by-cdeid',
+            { params: { cdeid: selectedCdeid } }
+          );
+          setParametersData(response.data);
+          setGlobalError('');
+          if (response.data.length > 0) {
+            setSelectedObjectId(response.data[0].objectId);
+          } else {
+            setSelectedObjectId(null);
+          }
+        } else if (searchObject.trim()) {
+          const response = await axios.get<ParameterDetails[]>(
+            'https://localhost:7075/api/parameters/search',
+            { params: { objectName: searchObject } }
+          );
+          setParametersData(response.data);
+          setGlobalError('');
+          if (response.data.length > 0) {
+            setSelectedObjectId(response.data[0].objectId);
+          } else {
+            setSelectedObjectId(null);
+          }
         } else {
+          setParametersData([]);
           setSelectedObjectId(null);
         }
       } catch (err) {
@@ -93,9 +103,8 @@ const ParametersTable: React.FC<ParametersTableProps> = ({
 
     const debounceTimer = setTimeout(fetchData, 500);
     return () => clearTimeout(debounceTimer);
-  }, [searchObject, setParametersData, setSelectedObjectId]);
+  }, [selectedCdeid, searchObject, setParametersData, setSelectedObjectId]);
 
-  // Обработчик изменения параметра
   const handleValueChange = async (
     objectId: number,
     paramDefId: number,
@@ -108,6 +117,7 @@ const ParametersTable: React.FC<ParametersTableProps> = ({
         p.paramDefId === paramDefId ? { ...p, isEditing: true } : p
       )
     );
+    setParamErrors((prev) => ({ ...prev, [paramDefId]: '' }));
 
     try {
       const response = await axios.put<ParameterDetails>(
@@ -122,12 +132,13 @@ const ParametersTable: React.FC<ParametersTableProps> = ({
       setParametersData((prev) =>
         prev.map((p) =>
           p.paramDefId === paramDefId
-            ? { ...response.data, objectId, tempValue: undefined }
+            ? { ...p, paramValue: response.data.paramValue, tempValue: undefined }
             : p
         )
       );
-    } catch (err) {
-      setGlobalError('Ошибка сохранения параметра');
+    } catch (err: any) {
+      const errorMessage = err.response?.data || 'Ошибка при сохранении параметра';
+      setParamErrors((prev) => ({ ...prev, [paramDefId]: errorMessage }));
       setParametersData((prev) =>
         prev.map((p) =>
           p.paramDefId === paramDefId ? { ...p, tempValue: p.paramValue } : p
@@ -142,53 +153,58 @@ const ParametersTable: React.FC<ParametersTableProps> = ({
     }
   };
 
-  // Рендер ячейки с значением
   const renderValueCell = (row: ParameterDetails) => {
     const currentValue = row.tempValue ?? row.paramValue;
+    const error = paramErrors[row.paramDefId];
 
     return (
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        {row.isEditing && <CircularProgress size={20} sx={{ color: 'primary.main' }} />}
-
-        <TextField
-          value={currentValue}
-          variant="standard"
-          size="small"
-          disabled={!isEditingMode} // Заблокировано в режиме просмотра
-          inputProps={{ readOnly: !isEditingMode }} // Дополнительная защита
-          onChange={(e) =>
-            isEditingMode &&
-            setParametersData((prev) =>
-              prev.map((p) =>
-                p.paramDefId === row.paramDefId ? { ...p, tempValue: e.target.value } : p
-              )
-            )
-          }
-          onBlur={() => isEditingMode && handleValueChange(row.objectId, row.paramDefId, currentValue)}
-          sx={{
-            width: 150,
-            '& .MuiInputBase-input': {
-              color: 'text.primary',
-              borderBottom:
-                row.tempValue !== undefined ? '2px solid #3498DB' : '1px solid #BDC3C7',
-            },
-          }}
-        />
-
-        {row.tempValue !== undefined && isEditingMode && (
-          <IconButton
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexDirection: 'column' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {row.isEditing && <CircularProgress size={20} sx={{ color: 'primary.main' }} />}
+          <TextField
+            value={currentValue}
+            variant="standard"
             size="small"
-            onClick={() =>
+            disabled={!isEditingMode}
+            inputProps={{ readOnly: !isEditingMode }}
+            onChange={(e) =>
+              isEditingMode &&
               setParametersData((prev) =>
                 prev.map((p) =>
-                  p.paramDefId === row.paramDefId ? { ...p, tempValue: undefined } : p
+                  p.paramDefId === row.paramDefId ? { ...p, tempValue: e.target.value } : p
                 )
               )
             }
-            sx={{ color: 'text.secondary' }}
-          >
-            <Undo fontSize="small" />
-          </IconButton>
+            onBlur={() => isEditingMode && handleValueChange(row.objectId, row.paramDefId, currentValue)}
+            sx={{
+              width: 150,
+              '& .MuiInputBase-input': {
+                color: 'text.primary',
+                borderBottom:
+                  row.tempValue !== undefined ? '2px solid #3498DB' : '1px solid #BDC3C7',
+              },
+            }}
+          />
+          {row.tempValue !== undefined && isEditingMode && (
+            <IconButton
+              size="small"
+              onClick={() =>
+                setParametersData((prev) =>
+                  prev.map((p) =>
+                    p.paramDefId === row.paramDefId ? { ...p, tempValue: undefined } : p
+                  )
+                )
+              }
+              sx={{ color: 'text.secondary' }}
+            >
+              <Undo fontSize="small" />
+            </IconButton>
+          )}
+        </Box>
+        {error && (
+          <Typography color="error" variant="caption">
+            {error}
+          </Typography>
         )}
       </Box>
     );
@@ -196,15 +212,16 @@ const ParametersTable: React.FC<ParametersTableProps> = ({
 
   return (
     <Box sx={{ margin: '1rem 0' }}>
-      <TextField
-        fullWidth
-        label="Поиск объекта"
-        variant="outlined"
-        value={searchObject}
-        onChange={(e) => setSearchObject(e.target.value)}
-        placeholder="Начните вводить название объекта..."
-        sx={{ mb: 4 }}
-      />
+      {!selectedCdeid && (
+        <TextField
+          fullWidth
+          label="Поиск объекта"
+          variant="outlined"
+          value={searchObject}
+          onChange={(e) => setSearchObject(e.target.value)}
+          sx={{ mb: 4 }}
+        />
+      )}
 
       {globalError && (
         <Typography color="error" sx={{ mb: 2 }}>
@@ -240,7 +257,7 @@ const ParametersTable: React.FC<ParametersTableProps> = ({
             ) : (
               <TableRow>
                 <TableCell colSpan={3} align="center" sx={{ color: 'text.secondary' }}>
-                  {searchObject ? 'Ничего не найдено' : 'Введите название объекта'}
+                  {selectedCdeid ? 'Данные не найдены' : (searchObject ? 'Ничего не найдено' : 'Введите название объекта')}
                 </TableCell>
               </TableRow>
             )}
@@ -255,14 +272,14 @@ const ParametersTable: React.FC<ParametersTableProps> = ({
             color="primary"
             onClick={() => setExpertiseModalOpen(true)}
           >
-            Просмотр экспертиз
+            Просмотр дефектов
           </Button>
           <Button
             variant="contained"
             color="primary"
             onClick={() => onNewExpertise?.(selectedObjectId)}
           >
-            Создать экспертизу
+            Записать дефект
           </Button>
           <Button
             variant="contained"

@@ -122,7 +122,7 @@ const NewExpertiseModal: React.FC<NewExpertiseModalProps> = ({ open, onClose, ob
         },
       }}
     >
-      <DialogTitle sx={{ color: 'text.primary' }}>Новая экспертиза для объекта #{objectId}</DialogTitle>
+      <DialogTitle sx={{ color: 'text.primary' }}>Новый дефект объекта #{objectId}</DialogTitle>
       <DialogContent sx={{ bgcolor: 'background.paper' }}>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
           {error && (
